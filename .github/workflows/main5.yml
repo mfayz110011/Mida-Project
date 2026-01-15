@@ -1,0 +1,42 @@
+name: Build Mida Pro APK
+on: [push]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      # فك الضغط عن أي ملف ZIP موجود عشان نتفادى غلطات التسمية
+      - name: Unzip Source
+        run: unzip *.zip
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      # خطوة ذكية: هيدور على ملف الـ gradlew في أي مكان حتى لو جوه مجلدات فرعية
+      - name: Grant Execute Permission
+        run: |
+          GRADLEW_PATH=$(find . -name "gradlew")
+          if [ -z "$GRADLEW_PATH" ]; then
+            echo "Error: This ZIP does not contain an Android Project (Native Java)"
+            exit 1
+          fi
+          chmod +x $GRADLEW_PATH
+          echo "GRADLEW_FOUND=$GRADLEW_PATH" >> $GITHUB_ENV
+
+      # بناء التطبيق
+      - name: Build APK
+        run: |
+          $GRADLEW_FOUND assembleDebug
+
+      # رفع الملف الناتج
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Mida-Pro-Final
+          path: "**/*.apk"
